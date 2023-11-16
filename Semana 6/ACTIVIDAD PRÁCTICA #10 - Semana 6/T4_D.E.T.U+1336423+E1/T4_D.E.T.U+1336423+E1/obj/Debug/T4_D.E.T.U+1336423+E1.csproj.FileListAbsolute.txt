@@ -1,0 +1,7 @@
+C:\Users\Home\Downloads\Visual studio\T4_D.E.T.U+1336423+E1\T4_D.E.T.U+1336423+E1\bin\Debug\T4_D.E.T.U+1336423+E1.exe.config
+C:\Users\Home\Downloads\Visual studio\T4_D.E.T.U+1336423+E1\T4_D.E.T.U+1336423+E1\bin\Debug\T4_D.E.T.U+1336423+E1.exe
+C:\Users\Home\Downloads\Visual studio\T4_D.E.T.U+1336423+E1\T4_D.E.T.U+1336423+E1\bin\Debug\T4_D.E.T.U+1336423+E1.pdb
+C:\Users\Home\Downloads\Visual studio\T4_D.E.T.U+1336423+E1\T4_D.E.T.U+1336423+E1\obj\Debug\T4_D.E.T.U+1336423+E1.csproj.AssemblyReference.cache
+C:\Users\Home\Downloads\Visual studio\T4_D.E.T.U+1336423+E1\T4_D.E.T.U+1336423+E1\obj\Debug\T4_D.E.T.U+1336423+E1.csproj.CoreCompileInputs.cache
+C:\Users\Home\Downloads\Visual studio\T4_D.E.T.U+1336423+E1\T4_D.E.T.U+1336423+E1\obj\Debug\T4_D.E.T.U+1336423+E1.exe
+C:\Users\Home\Downloads\Visual studio\T4_D.E.T.U+1336423+E1\T4_D.E.T.U+1336423+E1\obj\Debug\T4_D.E.T.U+1336423+E1.pdb

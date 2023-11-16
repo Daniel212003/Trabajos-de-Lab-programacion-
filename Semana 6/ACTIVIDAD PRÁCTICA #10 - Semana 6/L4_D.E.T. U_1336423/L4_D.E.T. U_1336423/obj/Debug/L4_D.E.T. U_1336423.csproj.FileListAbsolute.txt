@@ -1,0 +1,14 @@
+C:\Users\Home\Downloads\Visual studio\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\bin\Debug\L4_D.E.T.U_1336423.exe.config
+C:\Users\Home\Downloads\Visual studio\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\bin\Debug\L4_D.E.T.U_1336423.exe
+C:\Users\Home\Downloads\Visual studio\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\bin\Debug\L4_D.E.T.U_1336423.pdb
+C:\Users\Home\Downloads\Visual studio\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\obj\Debug\L4_D.E.T. U_1336423.csproj.AssemblyReference.cache
+C:\Users\Home\Downloads\Visual studio\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\obj\Debug\L4_D.E.T. U_1336423.csproj.CoreCompileInputs.cache
+C:\Users\Home\Downloads\Visual studio\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\obj\Debug\L4_D.E.T.U_1336423.exe
+C:\Users\Home\Downloads\Visual studio\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\obj\Debug\L4_D.E.T.U_1336423.pdb
+C:\Users\Home\Downloads\Visual studio\ACTIVIDAD PRÁCTICA #10 - Semana 6\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\bin\Debug\L4_D.E.T.U_1336423.exe.config
+C:\Users\Home\Downloads\Visual studio\ACTIVIDAD PRÁCTICA #10 - Semana 6\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\bin\Debug\L4_D.E.T.U_1336423.exe
+C:\Users\Home\Downloads\Visual studio\ACTIVIDAD PRÁCTICA #10 - Semana 6\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\bin\Debug\L4_D.E.T.U_1336423.pdb
+C:\Users\Home\Downloads\Visual studio\ACTIVIDAD PRÁCTICA #10 - Semana 6\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\obj\Debug\L4_D.E.T. U_1336423.csproj.AssemblyReference.cache
+C:\Users\Home\Downloads\Visual studio\ACTIVIDAD PRÁCTICA #10 - Semana 6\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\obj\Debug\L4_D.E.T. U_1336423.csproj.CoreCompileInputs.cache
+C:\Users\Home\Downloads\Visual studio\ACTIVIDAD PRÁCTICA #10 - Semana 6\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\obj\Debug\L4_D.E.T.U_1336423.exe
+C:\Users\Home\Downloads\Visual studio\ACTIVIDAD PRÁCTICA #10 - Semana 6\L4_D.E.T. U_1336423\L4_D.E.T. U_1336423\obj\Debug\L4_D.E.T.U_1336423.pdb

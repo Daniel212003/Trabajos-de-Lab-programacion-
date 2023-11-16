@@ -1,0 +1,14 @@
+C:\Users\PC\source\repos\Proyecto Programacion Intro\Proyecto Programacion Intro\bin\Debug\Proyecto Programacion Intro.exe.config
+C:\Users\PC\source\repos\Proyecto Programacion Intro\Proyecto Programacion Intro\bin\Debug\Proyecto Programacion Intro.exe
+C:\Users\PC\source\repos\Proyecto Programacion Intro\Proyecto Programacion Intro\bin\Debug\Proyecto Programacion Intro.pdb
+C:\Users\PC\source\repos\Proyecto Programacion Intro\Proyecto Programacion Intro\obj\Debug\Proyecto Programacion Intro.csproj.AssemblyReference.cache
+C:\Users\PC\source\repos\Proyecto Programacion Intro\Proyecto Programacion Intro\obj\Debug\Proyecto Programacion Intro.csproj.CoreCompileInputs.cache
+C:\Users\PC\source\repos\Proyecto Programacion Intro\Proyecto Programacion Intro\obj\Debug\Proyecto Programacion Intro.exe
+C:\Users\PC\source\repos\Proyecto Programacion Intro\Proyecto Programacion Intro\obj\Debug\Proyecto Programacion Intro.pdb
+C:\Users\Home\Downloads\Proyecto Programacion Intro (1) (1)\Proyecto Programacion Intro\Proyecto Programacion Intro\bin\Debug\Proyecto Programacion Intro.exe.config
+C:\Users\Home\Downloads\Proyecto Programacion Intro (1) (1)\Proyecto Programacion Intro\Proyecto Programacion Intro\bin\Debug\Proyecto Programacion Intro.exe
+C:\Users\Home\Downloads\Proyecto Programacion Intro (1) (1)\Proyecto Programacion Intro\Proyecto Programacion Intro\bin\Debug\Proyecto Programacion Intro.pdb
+C:\Users\Home\Downloads\Proyecto Programacion Intro (1) (1)\Proyecto Programacion Intro\Proyecto Programacion Intro\obj\Debug\Proyecto Programacion Intro.csproj.AssemblyReference.cache
+C:\Users\Home\Downloads\Proyecto Programacion Intro (1) (1)\Proyecto Programacion Intro\Proyecto Programacion Intro\obj\Debug\Proyecto Programacion Intro.csproj.CoreCompileInputs.cache
+C:\Users\Home\Downloads\Proyecto Programacion Intro (1) (1)\Proyecto Programacion Intro\Proyecto Programacion Intro\obj\Debug\Proyecto Programacion Intro.exe
+C:\Users\Home\Downloads\Proyecto Programacion Intro (1) (1)\Proyecto Programacion Intro\Proyecto Programacion Intro\obj\Debug\Proyecto Programacion Intro.pdb

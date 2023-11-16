@@ -1,0 +1,7 @@
+C:\Users\Home\Downloads\Visual studio\Tarea 1, Lab5_D.E.T.U_1336423\Tarea 1, Lab5_D.E.T.U_1336423\bin\Debug\Tarea 1, Lab5_D.E.T.U_1336423.exe.config
+C:\Users\Home\Downloads\Visual studio\Tarea 1, Lab5_D.E.T.U_1336423\Tarea 1, Lab5_D.E.T.U_1336423\bin\Debug\Tarea 1, Lab5_D.E.T.U_1336423.exe
+C:\Users\Home\Downloads\Visual studio\Tarea 1, Lab5_D.E.T.U_1336423\Tarea 1, Lab5_D.E.T.U_1336423\bin\Debug\Tarea 1, Lab5_D.E.T.U_1336423.pdb
+C:\Users\Home\Downloads\Visual studio\Tarea 1, Lab5_D.E.T.U_1336423\Tarea 1, Lab5_D.E.T.U_1336423\obj\Debug\Tarea 1, Lab5_D.E.T.U_1336423.csproj.AssemblyReference.cache
+C:\Users\Home\Downloads\Visual studio\Tarea 1, Lab5_D.E.T.U_1336423\Tarea 1, Lab5_D.E.T.U_1336423\obj\Debug\Tarea 1, Lab5_D.E.T.U_1336423.csproj.CoreCompileInputs.cache
+C:\Users\Home\Downloads\Visual studio\Tarea 1, Lab5_D.E.T.U_1336423\Tarea 1, Lab5_D.E.T.U_1336423\obj\Debug\Tarea 1, Lab5_D.E.T.U_1336423.exe
+C:\Users\Home\Downloads\Visual studio\Tarea 1, Lab5_D.E.T.U_1336423\Tarea 1, Lab5_D.E.T.U_1336423\obj\Debug\Tarea 1, Lab5_D.E.T.U_1336423.pdb

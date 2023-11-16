@@ -1,0 +1,7 @@
+C:\Users\Home\Downloads\Visual studio\Laboratorio 10\Laboratorio 10\bin\Debug\Laboratorio 10.exe.config
+C:\Users\Home\Downloads\Visual studio\Laboratorio 10\Laboratorio 10\bin\Debug\Laboratorio 10.exe
+C:\Users\Home\Downloads\Visual studio\Laboratorio 10\Laboratorio 10\bin\Debug\Laboratorio 10.pdb
+C:\Users\Home\Downloads\Visual studio\Laboratorio 10\Laboratorio 10\obj\Debug\Laboratorio 10.csproj.AssemblyReference.cache
+C:\Users\Home\Downloads\Visual studio\Laboratorio 10\Laboratorio 10\obj\Debug\Laboratorio 10.csproj.CoreCompileInputs.cache
+C:\Users\Home\Downloads\Visual studio\Laboratorio 10\Laboratorio 10\obj\Debug\Laboratorio 10.exe
+C:\Users\Home\Downloads\Visual studio\Laboratorio 10\Laboratorio 10\obj\Debug\Laboratorio 10.pdb

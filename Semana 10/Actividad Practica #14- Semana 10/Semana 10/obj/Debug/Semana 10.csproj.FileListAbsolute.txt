@@ -1,0 +1,7 @@
+C:\Users\Home\Downloads\Visual studio\Semana 10\Semana 10\bin\Debug\Semana 10.exe.config
+C:\Users\Home\Downloads\Visual studio\Semana 10\Semana 10\bin\Debug\Semana 10.exe
+C:\Users\Home\Downloads\Visual studio\Semana 10\Semana 10\bin\Debug\Semana 10.pdb
+C:\Users\Home\Downloads\Visual studio\Semana 10\Semana 10\obj\Debug\Semana 10.csproj.AssemblyReference.cache
+C:\Users\Home\Downloads\Visual studio\Semana 10\Semana 10\obj\Debug\Semana 10.csproj.CoreCompileInputs.cache
+C:\Users\Home\Downloads\Visual studio\Semana 10\Semana 10\obj\Debug\Semana 10.exe
+C:\Users\Home\Downloads\Visual studio\Semana 10\Semana 10\obj\Debug\Semana 10.pdb

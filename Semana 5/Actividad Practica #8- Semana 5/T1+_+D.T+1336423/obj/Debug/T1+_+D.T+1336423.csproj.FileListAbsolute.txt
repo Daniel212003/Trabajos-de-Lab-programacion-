@@ -1,0 +1,7 @@
+C:\Users\Home\Downloads\Visual studio\T1+_+D.T+1336423\T1+_+D.T+1336423\bin\Debug\T1+_+D.T+1336423.exe.config
+C:\Users\Home\Downloads\Visual studio\T1+_+D.T+1336423\T1+_+D.T+1336423\bin\Debug\T1+_+D.T+1336423.exe
+C:\Users\Home\Downloads\Visual studio\T1+_+D.T+1336423\T1+_+D.T+1336423\bin\Debug\T1+_+D.T+1336423.pdb
+C:\Users\Home\Downloads\Visual studio\T1+_+D.T+1336423\T1+_+D.T+1336423\obj\Debug\T1+_+D.T+1336423.csproj.AssemblyReference.cache
+C:\Users\Home\Downloads\Visual studio\T1+_+D.T+1336423\T1+_+D.T+1336423\obj\Debug\T1+_+D.T+1336423.csproj.CoreCompileInputs.cache
+C:\Users\Home\Downloads\Visual studio\T1+_+D.T+1336423\T1+_+D.T+1336423\obj\Debug\T1+_+D.T+1336423.exe
+C:\Users\Home\Downloads\Visual studio\T1+_+D.T+1336423\T1+_+D.T+1336423\obj\Debug\T1+_+D.T+1336423.pdb

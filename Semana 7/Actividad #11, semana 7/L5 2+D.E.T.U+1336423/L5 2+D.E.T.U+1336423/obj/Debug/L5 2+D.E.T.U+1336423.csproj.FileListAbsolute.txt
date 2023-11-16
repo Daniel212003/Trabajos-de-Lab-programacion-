@@ -1,0 +1,7 @@
+C:\Users\Home\Downloads\Visual studio\L5 2+D.E.T.U+1336423\L5 2+D.E.T.U+1336423\bin\Debug\L5 2+D.E.T.U+1336423.exe.config
+C:\Users\Home\Downloads\Visual studio\L5 2+D.E.T.U+1336423\L5 2+D.E.T.U+1336423\bin\Debug\L5 2+D.E.T.U+1336423.exe
+C:\Users\Home\Downloads\Visual studio\L5 2+D.E.T.U+1336423\L5 2+D.E.T.U+1336423\bin\Debug\L5 2+D.E.T.U+1336423.pdb
+C:\Users\Home\Downloads\Visual studio\L5 2+D.E.T.U+1336423\L5 2+D.E.T.U+1336423\obj\Debug\L5 2+D.E.T.U+1336423.csproj.AssemblyReference.cache
+C:\Users\Home\Downloads\Visual studio\L5 2+D.E.T.U+1336423\L5 2+D.E.T.U+1336423\obj\Debug\L5 2+D.E.T.U+1336423.csproj.CoreCompileInputs.cache
+C:\Users\Home\Downloads\Visual studio\L5 2+D.E.T.U+1336423\L5 2+D.E.T.U+1336423\obj\Debug\L5 2+D.E.T.U+1336423.exe
+C:\Users\Home\Downloads\Visual studio\L5 2+D.E.T.U+1336423\L5 2+D.E.T.U+1336423\obj\Debug\L5 2+D.E.T.U+1336423.pdb
