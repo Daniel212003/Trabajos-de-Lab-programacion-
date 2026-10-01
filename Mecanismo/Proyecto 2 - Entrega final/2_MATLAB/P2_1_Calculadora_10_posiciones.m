@@ -27,7 +27,7 @@ if ~isfolder(salida), mkdir(salida); end
 addpath(carpeta);   % la calculadora esta en esta misma carpeta
 
 %% Datos del mecanismo (los mismos de P2_2_Analisis_Validacion.m)
-a = 35;  b = 132;  c = -20;
+a = 35;  b = 132;  c = -20;   % [mm] = planos de las piezas (hojas 2 y 3; c = 50.0 - 70.0, hojas 4 y 1)
 rpm = 30;              % velocidad de diseno; cambiar por la medida en el inciso d)
 w2  = rpm*2*pi/60;
 al2 = 0;

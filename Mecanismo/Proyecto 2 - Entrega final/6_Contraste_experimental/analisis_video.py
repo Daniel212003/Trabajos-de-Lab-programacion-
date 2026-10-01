@@ -28,7 +28,7 @@ CUADROS = os.path.join(tempfile.gettempdir(), 'cuadros_dosificador')   # fuera d
 FPS = 30.0
 N_LATERAL = 172                 # cuadros con vista lateral (las primeras 4 vueltas)
 D_DISCO = 90.0                  # diametro del disco de la manivela [mm] (modelo de Inventor)
-a, b, c = 35.0, 132.0, -20.0    # medidas de diseno [mm]
+a, b, c = 35.0, 132.0, -20.0    # medidas de diseno = planos de las piezas (5_Inventor/Dimensiones_de_piezas.pdf) [mm]
 A0, B0, O0 = (376, 396), (559, 375), (348.6, 349.4, 61.0)   # posiciones iniciales en el cuadro 1 [px]
 
 # ---------------------------------------------------------------- 1. cuadros

@@ -4,9 +4,14 @@
 % Dosificador de tolva movido por un mecanismo manivela-corredera descentrado
 % ======================================================================
 % Modelo de Inventor: ..\5_Inventor\Ensamblaje.iam
-%   a = 35 mm   manivela O2A (rueda naranja, la mueve el motor)
-%   b = 132 mm  biela AB (acoplador magenta)
-%   c = -20 mm  descentrado: el eje del bloque azul pasa 20 mm por debajo de O2
+% Planos de las piezas: ..\5_Inventor\Dimensiones_de_piezas.pdf (Anexo D del informe)
+%   a = 35 mm   manivela O2A: agujero del disco-manivela a 35 mm de su centro (hoja 2)
+%   b = 132 mm  biela AB: distancia entre los centros de sus agujeros (hoja 3)
+%   c = -20 mm  descentrado: el eje del bloque azul pasa 20 mm por debajo de O2.
+%               Alturas sobre la placa base: pasador B = 35 + 30/2 = 50.0 mm (oreja del
+%               bloque, hoja 4) y eje O2 = 70.0 mm (agujero del soporte, hoja 1):
+%               c = 50.0 - 70.0 = -20.0 mm
+% Motor: motorreductor de CD de 3-6 V, 120 rpm nominales, con engranajes metalicos.
 %   El bloque azul (corredera) es el eslabon de salida.
 %
 % Convencion (Norton, "Diseno de maquinaria", manivela-corredera):
@@ -46,6 +51,7 @@ b = 132*escala;          % biela [mm]
 c = -20*escala;          % descentrado de la corredera [mm]
 
 rpm_diseno  = 30;        % velocidad de diseno del motor [rpm]
+rpm_motor_nominal = 120; % motor usado: 3-6 V, 120 rpm nominales sin carga (engranajes metalicos)
 rpm_medidas = [];        % d) mediciones del motor en rpm (minimo 3), p. ej. [n1 n2 n3]
 instrumento = 'Pendiente: tacometro optico o video cuadro por cuadro';
 rpm_video   = [43.7802 43.1131 44.1045 42.6653];   % g) velocidad medida en el video, una por vuelta completa [rpm]
@@ -297,6 +303,8 @@ if ~isempty(rpm_video)
     nv = numel(rpm_video);  mv = mean(rpm_video);  sv = std(rpm_video);
     fprintf('omega2 medida en el video: %.2f +/- %.2f rpm (U95, %d vueltas) contra %.2f rpm de diseno: %+.1f %%\n', ...
         mv, tStudent95(nv-1)*sv/sqrt(nv), nv, rpm_diseno, 100*(mv - rpm_diseno)/rpm_diseno);
+    fprintf('El motor (%.0f rpm nominales sin carga) giro con carga al %.0f %% de su velocidad nominal.\n', ...
+        rpm_motor_nominal, 100*mv/rpm_motor_nominal);
 end
 if isfile(archivoVid)
     V = readtable(archivoVid);
