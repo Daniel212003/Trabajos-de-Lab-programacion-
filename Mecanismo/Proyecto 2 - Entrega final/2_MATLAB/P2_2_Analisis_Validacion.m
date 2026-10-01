@@ -48,6 +48,7 @@ c = -20*escala;          % descentrado de la corredera [mm]
 rpm_diseno  = 30;        % velocidad de diseno del motor [rpm]
 rpm_medidas = [];        % d) mediciones del motor en rpm (minimo 3), p. ej. [n1 n2 n3]
 instrumento = 'Pendiente: tacometro optico o video cuadro por cuadro';
+rpm_video   = [43.7802 43.1131 44.1045 42.6653];   % g) velocidad medida en el video, una por vuelta completa [rpm]
 sentido = +1;            % +1 antihorario visto desde el lado de la biela; -1 horario
 alpha2  = 0;             % el motor gira a velocidad constante
 
@@ -282,7 +283,9 @@ exportgraphics(fig4, fullfile(res, 'e_esquema_10_posiciones.png'), 'Resolution',
 %   t   -> tiempo [s]
 %   x   -> posicion del bloque a lo largo de la corredera [mm]
 %   th2 -> (opcional) angulo de la marca de la manivela [grados], medido como en este script
-% (ver plantilla_medicion_video.csv)
+%   Si trae th2, x debe ser la posicion absoluta d del pasador B (distancia horizontal desde O2).
+% (ver plantilla_medicion_video.csv; el archivo medicion_video.csv de esta carpeta sale de
+%  ..\6_Contraste_experimental\analisis_video.py)
 Texp = table();
 archivoVid = fullfile(carpeta, 'medicion_video.csv');
 fprintf('================ g) CONTRASTE EXPERIMENTAL ================\n');
@@ -290,43 +293,71 @@ if n_med >= 3
     fprintf('omega2 medida %.3f rpm contra diseno %.3f rpm: diferencia %.2f %%\n', ...
         rpm_prom, rpm_diseno, 100*(rpm_prom - rpm_diseno)/rpm_diseno);
 end
+if ~isempty(rpm_video)
+    nv = numel(rpm_video);  mv = mean(rpm_video);  sv = std(rpm_video);
+    fprintf('omega2 medida en el video: %.2f +/- %.2f rpm (U95, %d vueltas) contra %.2f rpm de diseno: %+.1f %%\n', ...
+        mv, tStudent95(nv-1)*sv/sqrt(nv), nv, rpm_diseno, 100*(mv - rpm_diseno)/rpm_diseno);
+end
 if isfile(archivoVid)
     V = readtable(archivoVid);
     tv = V.t(:);  xv = V.x(:);
     ok = isfinite(tv) & isfinite(xv);  tv = tv(ok);  xv = xv(ok);
-    carrera_exp = max(xv) - min(xv);
-    % Teoria: desplazamiento medido desde el punto muerto interior
     if ismember('th2', V.Properties.VariableNames)
+        % Caso 1: angulo medido de la manivela y posicion absoluta d del bloque (B no siempre es visible,
+        % asi que se compara d contra la teoria en cada cuadro en lugar de la carrera completa).
         th2v = V.th2(ok);
+        teo  = cinematicaCerrada(th2v, a, b, c, w2, alpha2).d;
+        err  = xv - teo;
+        fprintf('Posicion del bloque: %d cuadros, error medio %.2f mm, RMS %.2f mm (%.1f %% de la carrera), maximo %.2f mm\n', ...
+            numel(xv), mean(err), rmsv(err), 100*rmsv(err)/carrera, max(abs(err)));
+        fprintf('Posicion minima medida %.2f mm (punto muerto interior teorico %.2f mm)\n', min(xv), d_min);
+        Texp = table(tv, th2v, xv, teo, err, 'VariableNames', ...
+            {'t (s)','theta2 (°)','d medido (mm)','d teórico (mm)','diferencia (mm)'});
+        fig5 = figure('Color','w','Position',[140 140 900 420]);
+        ax5 = axes(fig5); hold(ax5,'on'); grid(ax5,'on'); box(ax5,'on');
+        plot(ax5, thc, Ec.d, '-', 'Color', azul, 'LineWidth', 1.8);
+        plot(ax5, th2v, xv, 'o', 'Color', naranja, 'MarkerSize', 4);
+        xlim(ax5, [0 360]); xticks(ax5, 0:36:360);
+        xlabel(ax5, '\theta_2 medido (grados)'); ylabel(ax5, 'd (mm)');
+        legend(ax5, {'Teórico','Medido en video'}, 'Location', 'best');
+        title(ax5, sprintf('Contraste experimental: error RMS de la posición = %.2f mm', rmsv(err)));
+        exportgraphics(fig5, fullfile(res, 'g_contraste_video.png'), 'Resolution', 200);
     else
-        % Sin angulo en el video: se busca la fase que mejor ajusta, con la omega2 usada
-        fases = (0:0.25:359.75)';
-        rms_f = zeros(size(fases));
-        for k = 1:numel(fases)
-            dk = cinematicaCerrada(mod(fases(k) + rad2deg(w2*(tv - tv(1))), 360), a, b, c, w2, alpha2).d - d_min;
-            rms_f(k) = min(rms(dk - (xv - min(xv))), rms(dk - (max(xv) - xv)));
+    % Caso 2: solo t y x (desplazamiento relativo); se compara la carrera y la forma de la curva
+        carrera_exp = max(xv) - min(xv);
+        % Teoria: desplazamiento medido desde el punto muerto interior
+        if ismember('th2', V.Properties.VariableNames)
+            th2v = V.th2(ok);
+        else
+            % Sin angulo en el video: se busca la fase que mejor ajusta, con la omega2 usada
+            fases = (0:0.25:359.75)';
+            rms_f = zeros(size(fases));
+            for k = 1:numel(fases)
+                dk = cinematicaCerrada(mod(fases(k) + rad2deg(w2*(tv - tv(1))), 360), a, b, c, w2, alpha2).d - d_min;
+                rms_f(k) = min(rmsv(dk - (xv - min(xv))), rmsv(dk - (max(xv) - xv)));
+            end
+            [~, kb] = min(rms_f);
+            th2v = mod(fases(kb) + rad2deg(w2*(tv - tv(1))), 360);
         end
-        [~, kb] = min(rms_f);
-        th2v = mod(fases(kb) + rad2deg(w2*(tv - tv(1))), 360);
+        teo = cinematicaCerrada(th2v, a, b, c, w2, alpha2).d - d_min;
+        x1 = xv - min(xv);  x2 = max(xv) - xv;        % el eje x de Tracker puede ir al reves
+        if rmsv(teo - x2) < rmsv(teo - x1), xexp = x2; else, xexp = x1; end
+        err = xexp - teo;
+        fprintf('Carrera medida %.2f mm contra teorica %.2f mm: error %.2f %%\n', ...
+            carrera_exp, carrera, 100*(carrera_exp - carrera)/carrera);
+        fprintf('Error RMS de la posicion: %.2f mm (%.2f %% de la carrera); error maximo %.2f mm\n', ...
+            rmsv(err), 100*rmsv(err)/carrera, max(abs(err)));
+        Texp = table(tv, th2v, xexp, teo, err, 'VariableNames', ...
+            {'t (s)','theta2 (°)','x medido (mm)','x teórico (mm)','diferencia (mm)'});
+        fig5 = figure('Color','w','Position',[140 140 900 420]);
+        ax5 = axes(fig5); hold(ax5,'on'); grid(ax5,'on'); box(ax5,'on');
+        plot(ax5, tv, teo, '-', 'Color', azul, 'LineWidth', 1.8);
+        plot(ax5, tv, xexp, 'o', 'Color', naranja, 'MarkerSize', 4);
+        xlabel(ax5, 't (s)'); ylabel(ax5, 'desplazamiento desde el punto muerto interior (mm)');
+        legend(ax5, {'Teórico','Medido en video'}, 'Location', 'best');
+        title(ax5, sprintf('Contraste experimental: carrera medida %.1f mm, teórica %.1f mm', carrera_exp, carrera));
+        exportgraphics(fig5, fullfile(res, 'g_contraste_video.png'), 'Resolution', 200);
     end
-    teo = cinematicaCerrada(th2v, a, b, c, w2, alpha2).d - d_min;
-    x1 = xv - min(xv);  x2 = max(xv) - xv;        % el eje x de Tracker puede ir al reves
-    if rms(teo - x2) < rms(teo - x1), xexp = x2; else, xexp = x1; end
-    err = xexp - teo;
-    fprintf('Carrera medida %.2f mm contra teorica %.2f mm: error %.2f %%\n', ...
-        carrera_exp, carrera, 100*(carrera_exp - carrera)/carrera);
-    fprintf('Error RMS de la posicion: %.2f mm (%.2f %% de la carrera); error maximo %.2f mm\n', ...
-        rms(err), 100*rms(err)/carrera, max(abs(err)));
-    Texp = table(tv, th2v, xexp, teo, err, 'VariableNames', ...
-        {'t (s)','theta2 (°)','x medido (mm)','x teórico (mm)','diferencia (mm)'});
-    fig5 = figure('Color','w','Position',[140 140 900 420]);
-    ax5 = axes(fig5); hold(ax5,'on'); grid(ax5,'on'); box(ax5,'on');
-    plot(ax5, tv, teo, '-', 'Color', azul, 'LineWidth', 1.8);
-    plot(ax5, tv, xexp, 'o', 'Color', naranja, 'MarkerSize', 4);
-    xlabel(ax5, 't (s)'); ylabel(ax5, 'desplazamiento desde el punto muerto interior (mm)');
-    legend(ax5, {'Teórico','Medido en video'}, 'Location', 'best');
-    title(ax5, sprintf('Contraste experimental: carrera medida %.1f mm, teórica %.1f mm', carrera_exp, carrera));
-    exportgraphics(fig5, fullfile(res, 'g_contraste_video.png'), 'Resolution', 200);
 else
     fprintf('Todavia no hay medicion_video.csv. Cuando lo tengan, vuelvan a ejecutar el script.\n');
 end
@@ -387,6 +418,11 @@ function x = newtonCierre(th2, x, a, b, c)
         if norm(dx) < 1e-13, return; end
     end
     error('Newton-Raphson no convergio en theta2 = %.2f grados.', th2);
+end
+
+function r = rmsv(x)
+% raiz del valor cuadratico medio (sin depender de toolboxes)
+    r = sqrt(mean(x(:).^2));
 end
 
 function e = errPct(valor, referencia)
