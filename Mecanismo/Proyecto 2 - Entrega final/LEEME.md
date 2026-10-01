@@ -29,11 +29,14 @@ Las fuentes principales de diferencia son tres:
 - **Las holguras.** Dejan unos 1.6 mm de juego al invertir el movimiento.
 - **Las tolerancias.** Su efecto es menor.
 
+## Inciso d
+
+Velocidad del motor medida en el video, cuadro por cuadro, con 4 vueltas completas: 43.78, 43.11, 44.10 y 42.67 rpm. El resultado es **43.42 ± 1.03 rpm** (U₉₅), con s = 0.65 rpm y CV = 1.5 %.
+
 ## Lo que falta completar (resaltado en amarillo en el Word)
 
-1. **Inciso d)**: la tabla de mediciones de rpm con su instrumento (por ejemplo, el tacómetro). Como referencia, el video da 43.4 rpm. En MATLAB van en `rpm_medidas` de `P2_2_Analisis_Validacion.m`.
-2. **Modelo y voltaje nominal del motor** (inciso c).
-3. **Nombres y carnés del grupo** en la portada.
+1. **Modelo y voltaje nominal del motor** (inciso c).
+2. **Nombres y carnés del grupo** en la portada.
 
 ## Cómo volver a generar los resultados
 
