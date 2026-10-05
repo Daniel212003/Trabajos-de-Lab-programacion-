@@ -1,0 +1,158 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Empaque de cafe</title>
+<style>html,body{margin:0;background:#000;overflow:hidden;width:1280px;height:720px}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body><div id="stage"></div>
+<script type="module">
+import * as THREE from 'three';
+import * as L from './lib.js';
+L.hudCSS();
+const DUR = 22, OMEGA = Math.PI;                       // 30 rpm
+const { renderer, scene, camera } = L.setup({ bg: 0x14171d, exposure: 1.05 });
+L.lights(scene, { sun: [1.2, 3.4, 2.0], target: [0, 1.0, 0], size: 1.3, intensity: 2.4 });
+const GRAIN = L.grainTexture('#6b4226', '#2f1b0e', '#8a5a35', 4, 1100);
+
+// ---------- area de empaque escaneada ----------
+L.pointCloud(scene, {
+  seed: 33, x: [-4, 4], z: [-3, 3], h: 3.2, size: 0.018, walls: ['back', 'left'], scanner: [0.5, 1.0], reach: 11, nFloor: 420000, nWall: 52000, holes: 14,
+  yellow: [{ axis: 'x', at: 1.0, w: 0.1, from: -4, to: 4 }, { axis: 'x', at: -1.0, w: 0.1, from: -4, to: 4 }],
+  clearFloor: (x, z) => Math.abs(x) < 0.5 && Math.abs(z) < 1.0,
+  shelves: [{ c: [-1.6, -2.65], L: 2.6, D: 0.6, levels: 4, H: 2.1 }],
+  boxes: [{ c: [2.2, 0.3, -1.6], s: [1.2, 0.6, 1.0], col: [0.62, 0.48, 0.3] }, { c: [2.2, 0.75, -1.6], s: [1.0, 0.3, 0.8], col: [0.66, 0.52, 0.33] },
+          { c: [-2.8, 0.45, 1.6], s: [1.4, 0.9, 0.8], col: [0.4, 0.42, 0.45] }, { c: [3.2, 0.5, 1.4], s: [0.8, 1.0, 1.2], col: [0.3, 0.45, 0.7] }],
+});
+
+// ---------- dosificador 1:1 con la tolva recorrida 67 mm ----------
+const O = new THREE.Vector3(-0.30, 1.25, 0);
+const LIP = 0.223 + 0.067 + 0.040 + 0.030;            // borde de descarga (local)
+const D = L.buildDoser(1, { style: 'industrial', blockColor: 0x2f6fd0, hopperShift: 0.067, coverOpacity: 0.26, hopperOpacity: 0.32, outlet: [LIP, LIP + 0.05] });
+D.group.position.copy(O); scene.add(D.group);
+const mot = L.smallMotor(1); mot.position.copy(O); scene.add(mot);
+const K = D.K;
+// columna de cafe dentro de la tolva transparente
+{ const c = new THREE.Mesh(new THREE.CylinderGeometry(0.039, 0.039, 0.10, 32, 1, true), L.mat(0xffffff, { r: 0.9, map: GRAIN.clone() }));
+  c.material.map.repeat.set(4, 2); c.material.map.needsUpdate = true; c.position.set(O.x + D.hopperX, O.y + D.coverTop + 0.054, 0); scene.add(c);
+  const top = new THREE.Mesh(new THREE.CircleGeometry(0.039, 32), L.mat(0xffffff, { r: 0.9, map: GRAIN })); top.rotation.x = -Math.PI / 2; top.position.set(O.x + D.hopperX, O.y + D.coverTop + 0.104, 0); scene.add(top); }
+// estructura de perfil de aluminio
+const yb = O.y + D.yBase - 0.005;
+const xs0 = O.x - 0.05, xs1 = O.x + 0.27, zs = 0.085;
+const fr = [];
+for (const x of [xs0, xs1]) for (const z of [-zs, zs]) fr.push([x - 0.02, 0, z - 0.02, x + 0.02, yb, z + 0.02]);
+for (const y of [0.35, yb - 0.02]) { for (const z of [-zs, zs]) fr.push([xs0, y - 0.02, z - 0.02, xs1, y + 0.02, z + 0.02]); for (const x of [xs0, xs1]) fr.push([x - 0.02, y - 0.02, -zs, x + 0.02, y + 0.02, zs]); }
+scene.add(L.aluFrame(fr));
+// embudo de descarga
+const SX = O.x + LIP + 0.025, SZ = 0, FTOP = yb - 0.002, FEX = 1.04;
+{ const prof = [new THREE.Vector2(0.010, FEX), new THREE.Vector2(0.010, FTOP - 0.07), new THREE.Vector2(0.040, FTOP - 0.005), new THREE.Vector2(0.043, FTOP)];
+  const f = new THREE.Mesh(new THREE.LatheGeometry(prof, 40), L.mat(0xcfd8e2, { r: 0.15, m: 0.6, op: 0.45, side: THREE.DoubleSide }));
+  f.position.set(SX, 0, SZ); scene.add(f); }
+// banda transportadora a lo largo de z
+const conv = L.beltConveyor({ len: 1.8, width: 0.16, height: 0.86 });
+conv.group.rotation.y = -Math.PI / 2; conv.group.position.set(SX, 0, 0); scene.add(conv.group);
+// caja de carton al final de la banda
+{ const bx = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.30, 0.30), L.mat(0xb08a5a, { r: 0.85 })); bx.position.set(SX, 0.62, 1.08); L.shadowAll(bx); scene.add(bx); }
+
+// ---------- bolsas ----------
+function labelTex() {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 384; const g = cv.getContext('2d');
+  g.fillStyle = '#c9a77a'; g.fillRect(0, 0, 256, 384);
+  const r = L.rng(2); for (let i = 0; i < 3000; i++) { g.fillStyle = `rgba(90,60,30,${r() * 0.08})`; g.fillRect(r() * 256, r() * 384, 2, 2); }
+  g.fillStyle = '#3b2414'; g.fillRect(28, 120, 200, 150);
+  g.fillStyle = '#f3e3c3'; g.font = 'bold 44px Liberation Sans, Arial'; g.textAlign = 'center'; g.fillText('CAFÉ', 128, 182);
+  g.font = 'bold 30px Liberation Sans, Arial'; g.fillText('200 g', 128, 236);
+  g.fillStyle = '#3b2414'; g.fillRect(0, 12, 256, 10);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const LT = labelTex(), KRAFT = L.mat(0xc9a77a, { r: 0.85 }), LABEL = L.mat(0xffffff, { r: 0.8, map: LT });
+const PW = 0.10, PH = 0.15, PD = 0.06, PB = 0.86 + 0.006, PITCH = 0.17, RHO = 650, MDOSE = 0.200;
+const pouches = new Map();
+function makePouch() {
+  const g = new THREE.Group();
+  const add = (w, h, d, x, y, z, m) => { const ms = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); ms.position.set(x, y, z); ms.castShadow = true; ms.receiveShadow = true; g.add(ms); };
+  add(0.002, PH, PD, -PW / 2, PH / 2, 0, KRAFT); add(0.002, PH, PD, PW / 2, PH / 2, 0, LABEL);
+  add(PW, PH, 0.002, 0, PH / 2, -PD / 2, KRAFT); add(PW, PH, 0.002, 0, PH / 2, PD / 2, LABEL); add(PW, 0.003, PD, 0, 0.0015, 0, KRAFT);
+  const fill = new THREE.Mesh(new THREE.BoxGeometry(PW - 0.004, 1, PD - 0.004), L.mat(0xffffff, { r: 0.9, map: GRAIN })); fill.position.y = 0.5; g.add(fill);
+  g.userData.fill = fill; g.userData.mass = 0; scene.add(g); return g;
+}
+const TH_EXT = K.thExt, TH0 = TH_EXT + 0.2;
+const thAt = (t) => TH0 + OMEGA * t;
+function convPos(th) { const n = Math.floor((th - TH_EXT) / (2 * Math.PI)); const phi = L.wrap(th - TH_EXT); return n * PITCH + PITCH * L.smooth((phi - 0.44) / 2.44); }
+let curConv = 0;
+function pouchZ(m) { return m * PITCH + curConv; }
+function updatePouches() {
+  const mlo = Math.ceil((-0.86 - curConv) / PITCH), mhi = Math.floor((0.80 - curConv) / PITCH);
+  for (const [m, p] of pouches) if (m < mlo || m > mhi) { p.visible = false; }
+  for (let m = mlo; m <= mhi; m++) {
+    let p = pouches.get(m);
+    if (!p) { p = makePouch(); pouches.set(m, p); if (pouchZ(m) > -0.02 && !started) p.userData.mass = MDOSE; }
+    p.visible = true; p.position.set(SX, PB, pouchZ(m));
+    const lev = Math.max(0.0005, p.userData.mass / (RHO * (PW - 0.004) * (PD - 0.004)));
+    p.userData.fill.scale.y = lev; p.userData.fill.position.y = lev / 2 + 0.003; p.userData.fill.visible = p.userData.mass > 0.002;
+  }
+}
+let started = false;
+curConv = convPos(TH0); updatePouches(); started = true;
+
+// ---------- flujo de cafe ----------
+const NPD = 420, RR = L.rng(77);
+const flow = new L.DoserFlow(scene, D, O, {
+  h: 0.031, lip: LIP, grainMap: GRAIN, nd: NPD / K.S, curtain: 900, seed: 8,
+  particles: { max: 3000, size: 0.011, shape: 'bean', colors: [0x5b351c, 0x6b4226, 0x7a4c2c, 0x4a2a14] },
+  spout: { x: SX, z: SZ, yTop: FTOP - 0.01, yExit: FEX, pull: 14, jit: 0.012 },
+  onSub: (t, th) => { curConv = convPos(th); },
+  landing: (p) => { const m = Math.round(-curConv / PITCH); const pc = pouches.get(m); if (!pc) return null;
+    const lev = pc.userData.mass / (RHO * (PW - 0.004) * (PD - 0.004));
+    return { y: PB + 0.003 + lev, attach: (q) => { q.pc = pc; q.ox = (RR() - 0.5) * (PW - 0.02); q.oz = (RR() - 0.5) * (PD - 0.02); q.oy = q.y - PB; pc.userData.mass += MDOSE / NPD; } }; },
+  rest: (p) => { p.x = p.pc.position.x + p.ox; p.z = p.pc.position.z + p.oz; p.y = p.pc.position.y + p.oy; p.wr = 0; if (p.age > 0.9) flow.P.kill(p); },
+});
+
+// ---------- HUD ----------
+const title = L.el(`<div class="k">Uso 1 · Industria alimentaria</div><div class="t">Empaque de café en bolsas de 200 g</div><div class="s">El mismo dosificador del proyecto (modelo 1:1) llenando bolsas en una banda transportadora, dentro del levantamiento 3D del área de empaque.</div>`, 'title');
+L.el(`<div class="panel"><h4>Dosificación · 30 rpm</h4>
+  <div class="row"><span class="lab">θ₂ manivela</span><span class="val" id="vth">0°</span></div>
+  <div class="row"><span class="lab">V<sub>B</sub> bloque</span><span class="val" id="vv">0</span></div>
+  <div class="row"><span class="lab">Fase</span><span class="phase" id="vph">—</span></div>
+  <div class="row"><span class="lab">Bolsas llenadas</span><span class="val" id="vn">0</span></div>
+  <div class="row"><span class="lab">Producción</span><span class="val">30 bolsas/min</span></div></div>
+  <div class="panel" style="margin-top:10px;font-size:13px;line-height:1.45"><h4>Dosis por vuelta</h4>
+  V = S · ancho · h<br>= 70.9 mm × 140 mm × 31 mm<br>= 0.31 L ≈ <b>200 g de café</b><br><span style="color:#9fb0c4">(ρ ≈ 0.65 kg/L)</span></div>`, 'data');
+const cap = L.el('', 'cap', 'hud panel');
+L.el('Simulación cinemática (Norton) con a = 35 mm, b = 132 mm, c = −20 mm · flujo de material simplificado (flujo tapón) · ilustrativo', 'foot');
+const caps = [
+  [0.3, 3.4, 'Uso 1: el dosificador del proyecto, sin cambiar su mecanismo, llena bolsas de café de 200 g.'],
+  [3.6, 8.8, 'La tolva va recorrida 67 mm hacia la salida (recomendación del informe): con el bloque atrás, la boca queda libre y el café cae frente a él.'],
+  [9.9, 13.8, 'En el avance el bloque empuja la capa de café por debajo de la compuerta (h = 31 mm); lo que pasa el borde cae al embudo.'],
+  [14.0, 18.8, 'La banda avanza una bolsa durante el retorno (175°) y se detiene durante el avance (185°): el llenado va sincronizado con la manivela.'],
+  [19.0, 21.9, '30 rpm → 30 bolsas por minuto ≈ 6 kg/min (360 kg/h). Para otra dosis se cambia la altura h de la compuerta o la manivela a.'],
+];
+const CT = [0.0, 1.15, 0];
+const cam = L.cameraTrack([
+  { t: 0, pos: [2.0, 1.95, 2.4], look: [-0.05, 1.0, 0], fov: 40 },
+  { t: 3.2, pos: L.orbit(CT, 1.15, 0.38, 0.75), look: CT, fov: 38 },
+  { t: 8.6, fn: (u) => ({ pos: L.orbit(CT, 1.15, 0.38, L.lerp(0.75, 0.30, u)), look: CT, fov: 38 }) },
+  { t: 9.8, pos: [-0.07, 1.29, 0.66], look: [-0.07, 1.22, 0], fov: 38 },
+  { t: 13.8, pos: [-0.05, 1.29, 0.64], look: [-0.06, 1.22, 0], fov: 38 },
+  { t: 15.0, pos: [0.46, 1.22, 0.46], look: [0.08, 1.06, 0.0], fov: 38 },
+  { t: 18.8, pos: [0.44, 1.23, 0.50], look: [0.08, 1.05, 0.03], fov: 38 },
+  { t: 21.9, pos: [1.7, 1.75, 1.8], look: [0.0, 1.0, 0.1], fov: 40 },
+]);
+let lastT = 0;
+window.sequential = true;
+window.frame = (i) => {
+  const t = i / L.FPS, th = thAt(t);
+  if (i > 0) flow.step(lastT, t, thAt, OMEGA); else { flow.step(0, 0.0001, thAt, OMEGA, 1); }
+  lastT = t;
+  curConv = convPos(th); updatePouches(); conv.setPos(curConv);
+  D.update(th); flow.sync();
+  L.setCamera(camera, cam(t));
+  const vB = K.vel(th, OMEGA), adv = K.isAdvance(th);
+  document.getElementById('vth').textContent = L.deg(L.wrap(th)).toFixed(1) + '°';
+  document.getElementById('vv').textContent = (vB * 1000).toFixed(1) + ' mm/s';
+  const ph = document.getElementById('vph'); ph.textContent = adv ? 'AVANCE (descarga)' : 'RETORNO (carga)'; ph.style.background = adv ? '#1f8f4a' : '#b8621b';
+  document.getElementById('vn').textContent = Math.max(0, Math.floor((th - TH_EXT) / (2 * Math.PI)));
+  L.fadeIn(title, t, -1, 0, 7.0, 8.0);
+  document.getElementById('data').style.opacity = L.clamp((t - 2.6) / 0.6, 0, 1);
+  const c = caps.find(c => t >= c[0] && t <= c[1]); cap.innerHTML = c ? c[2] : ''; cap.style.opacity = c ? L.clamp(Math.min(t - c[0], c[1] - t) / 0.3, 0, 1) : 0;
+  if (!window.skipRender) renderer.render(scene, camera);
+  return true;
+};
+window.DUR = DUR; window.ready = true;
+</script></body></html>

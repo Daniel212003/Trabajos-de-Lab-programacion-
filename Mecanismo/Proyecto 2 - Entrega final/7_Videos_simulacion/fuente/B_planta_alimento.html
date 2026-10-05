@@ -1,0 +1,165 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Planta de alimento balanceado</title>
+<style>html,body{margin:0;background:#000;overflow:hidden;width:1280px;height:720px}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body><div id="stage"></div>
+<script type="module">
+import * as THREE from 'three';
+import * as L from './lib.js';
+L.hudCSS();
+const DUR = 24, OMEGA = Math.PI, KS = 4;               // 30 rpm, escala x4
+const { renderer, scene, camera } = L.setup({ bg: 0x13161c, exposure: 1.05 });
+L.lights(scene, { sun: [5, 11, 6], target: [0, 1.5, 0], size: 4.5, intensity: 2.5, mapSize: 2048 });
+const GRAIN = L.grainTexture('#8a6a3a', '#3e2d17', '#a8874f', 6, 1300);
+
+// ---------- nave industrial escaneada ----------
+L.pointCloud(scene, {
+  seed: 44, x: [-10, 10], z: [-7, 6], h: 7.5, size: 0.035, walls: ['back', 'left', 'right'], scanner: [1, 2], reach: 18, nFloor: 460000, nWall: 70000, holes: 20,
+  yellow: [{ axis: 'x', at: 2.2, w: 0.12, from: -10, to: 10 }, { axis: 'x', at: -1.9, w: 0.12, from: -10, to: 10 }, { axis: 'z', at: -3.2, w: 0.12, from: -7, to: 2.2 }],
+  clearFloor: (x, z) => x > -1.8 && x < 1.6 && Math.abs(z) < 2.0,
+  shelves: [{ c: [-6, -6.4], L: 6, D: 1.0, levels: 4, H: 4.5 }, { c: [3.5, -6.4], L: 5, D: 1.0, levels: 4, H: 4.5 }],
+  boxes: [{ c: [-6.5, 1.4, 0.5], s: [2.2, 2.8, 2.0], col: [0.2, 0.42, 0.62] }, { c: [-6.5, 3.4, 0.5], s: [1.2, 1.2, 1.2], col: [0.55, 0.58, 0.6] },
+          { c: [6.5, 1.2, -1.0], s: [2.6, 2.4, 1.8], col: [0.25, 0.5, 0.35] }, { c: [6.0, 0.6, 3.5], s: [1.2, 1.2, 1.2], col: [0.85, 0.85, 0.82] },
+          { c: [4.6, 0.6, 3.5], s: [1.2, 1.2, 1.2], col: [0.85, 0.85, 0.82] }, { c: [-3.5, 3.8, -5.0], s: [0.4, 7.5, 0.4], col: [0.6, 0.6, 0.62] },
+          { c: [3.5, 3.8, -5.0], s: [0.4, 7.5, 0.4], col: [0.6, 0.6, 0.62] }],
+});
+
+// ---------- dosificador industrial x4 sobre plataforma ----------
+const O = new THREE.Vector3(-0.8, 2.3, 0);
+const LIP = (0.223 + 0.067 + 0.040 + 0.030) * KS;
+const DECK = O.y - 0.30;                                 // cara superior de la plataforma
+const D = L.buildDoser(KS, { style: 'industrial', blockColor: 0x2f6fd0, hopperShift: 0.067, hopper: 'silo', siloR: 0.75, siloCone: 0.8, siloCyl: 0.7, floorY: DECK - O.y, grainMap: GRAIN, coverOpacity: 0.3, outlet: [LIP, LIP + 0.2] });
+D.group.position.copy(O); scene.add(D.group);
+const mot = L.industrialMotor(KS); mot.position.copy(O); scene.add(mot);
+const K = D.K;
+// plataforma con abertura bajo la descarga, columnas y barandal
+const X0 = O.x - 0.7, X1 = O.x + 2.05, ZP = 0.95, OX0 = O.x + LIP - 0.02, OX1 = O.x + LIP + 0.22;
+const steel = L.mat(0x5d6670, { r: 0.55, m: 0.6 }), yel = L.MAT.yellow();
+const deck = new THREE.Group(); scene.add(deck);
+const slab = (x0, x1, z0, z1) => { const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.06, z1 - z0), steel); m.position.set((x0 + x1) / 2, DECK - 0.03, (z0 + z1) / 2); deck.add(m); };
+slab(X0, OX0, -ZP, ZP); slab(OX1, X1, -ZP, ZP); slab(OX0, OX1, -ZP, -0.3); slab(OX0, OX1, 0.3, ZP);
+for (const x of [X0 + 0.05, X1 - 0.05]) for (const z of [-ZP + 0.05, ZP - 0.05]) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.12, DECK - 0.06, 0.12), steel); c.position.set(x, (DECK - 0.06) / 2, z); deck.add(c); }
+const rail = (x0, z0, x1, z1) => { const len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(z1 - z0, x1 - x0);
+  for (const y of [0.55, 1.05]) { const r = new THREE.Mesh(new THREE.BoxGeometry(len, 0.04, 0.04), yel); r.position.set((x0 + x1) / 2, DECK + y, (z0 + z1) / 2); r.rotation.y = -ang; deck.add(r); }
+  const n = Math.ceil(len / 0.9); for (let i = 0; i <= n; i++) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.07, 0.04), yel); p.position.set(x0 + (x1 - x0) * i / n, DECK + 0.535, z0 + (z1 - z0) * i / n); deck.add(p); } };
+rail(X0, -ZP, X1, -ZP); rail(X0, -ZP, X0, ZP); rail(X1, -ZP, X1, ZP);
+L.shadowAll(deck);
+// tolva de ensacado (spout) bajo la descarga
+const SX = O.x + LIP + 0.10, SZ = 0, FTOP = DECK - 0.07, FEX = 1.32;
+{ const prof = [new THREE.Vector2(0.09, FEX), new THREE.Vector2(0.09, FTOP - 0.35), new THREE.Vector2(0.30, FTOP - 0.02), new THREE.Vector2(0.32, FTOP)];
+  const f = new THREE.Mesh(new THREE.LatheGeometry(prof, 40), L.mat(0xb7c0ca, { r: 0.25, m: 0.8, op: 0.5, side: THREE.DoubleSide })); f.position.set(SX, 0, SZ); scene.add(f);
+  const clamp_ = new THREE.Mesh(new THREE.TorusGeometry(0.095, 0.018, 8, 32), L.MAT.dark()); clamp_.rotation.x = Math.PI / 2; clamp_.position.set(SX, FEX + 0.03, SZ); scene.add(clamp_); }
+// transportador de rodillos para los sacos (a lo largo de z)
+const rc = L.rollerConveyor({ len: 6.0, width: 0.62, height: 0.40, pitch: 0.11 });
+rc.group.rotation.y = -Math.PI / 2; rc.group.position.set(SX, 0, 0.8); scene.add(rc.group);
+// tarima con sacos llenos al final
+function sackTex() {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 384; const g = cv.getContext('2d');
+  g.fillStyle = '#ecebe4'; g.fillRect(0, 0, 256, 384);
+  g.strokeStyle = 'rgba(0,0,0,.06)'; for (let i = 0; i < 384; i += 4) { g.beginPath(); g.moveTo(0, i); g.lineTo(256, i); g.stroke(); } for (let i = 0; i < 256; i += 4) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 384); g.stroke(); }
+  g.fillStyle = '#2f8a3e'; g.fillRect(20, 120, 216, 150); g.fillStyle = '#fff'; g.textAlign = 'center';
+  g.font = 'bold 28px Liberation Sans, Arial'; g.fillText('ALIMENTO', 128, 168); g.fillText('BALANCEADO', 128, 204); g.font = 'bold 40px Liberation Sans, Arial'; g.fillText('40 kg', 128, 254);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const STX = sackTex(), WOVEN = L.mat(0xecebe4, { r: 0.85 }), PRINT = L.mat(0xffffff, { r: 0.85, map: STX });
+const SW = 0.46, SH = 0.75, SD = 0.26, SB = 0.40 + 0.03, PITCH = 0.85, RHO = 650, MDOSE = 10;
+{ const pal = new THREE.Group(); const wood = L.mat(0xa77d4e, { r: 0.85 });
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.14, 1.0), wood); top.position.y = 0.07; pal.add(top);
+  for (let l = 0; l < 3; l++) for (let j = 0; j < 2; j++) for (let q = 0; q < 2; q++) { const sk = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.2, 0.44), l % 2 ? WOVEN : PRINT); sk.position.set(-0.29 + q * 0.58, 0.24 + l * 0.21, -0.23 + j * 0.46); pal.add(sk); }
+  pal.position.set(SX + 1.0, 0, 3.6); L.shadowAll(pal); scene.add(pal); }
+const sacks = new Map();
+function makeSack() {
+  const g = new THREE.Group();
+  const add = (w, h, d, x, y, z, m) => { const ms = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); ms.position.set(x, y, z); ms.castShadow = true; ms.receiveShadow = true; g.add(ms); };
+  add(0.006, SH, SD, -SW / 2, SH / 2, 0, WOVEN); add(0.006, SH, SD, SW / 2, SH / 2, 0, PRINT);
+  add(SW, SH, 0.006, 0, SH / 2, -SD / 2, WOVEN); add(SW, SH, 0.006, 0, SH / 2, SD / 2, PRINT); add(SW, 0.01, SD, 0, 0.005, 0, WOVEN);
+  const fill = new THREE.Mesh(new THREE.BoxGeometry(SW - 0.012, 1, SD - 0.012), L.mat(0xffffff, { r: 0.9, map: GRAIN })); g.add(fill);
+  g.userData.fill = fill; g.userData.mass = 0; scene.add(g); return g;
+}
+const TH_EXT = K.thExt, TH0 = TH_EXT + 0.2;
+const thAt = (t) => TH0 + OMEGA * t;
+const cyc = (th) => Math.floor((th - TH_EXT) / (2 * Math.PI));
+function convPos(th) { const n = cyc(th), phi = L.wrap(th - TH_EXT), m4 = ((n % 4) + 4) % 4;
+  return m4 === 3 ? PITCH * (Math.floor(n / 4) + L.smooth((phi - 0.44) / 2.44)) : PITCH * Math.floor((n + 1) / 4); }
+let curConv = convPos(TH0), started = false;
+const sackZ = (m) => m * PITCH + curConv;
+function updateSacks() {
+  const mlo = Math.ceil((-2.2 - curConv) / PITCH), mhi = Math.floor((3.6 - curConv) / PITCH);
+  for (const [m, p] of sacks) if (m < mlo || m > mhi) p.visible = false;
+  for (let m = mlo; m <= mhi; m++) {
+    let p = sacks.get(m);
+    if (!p) { p = makeSack(); sacks.set(m, p); if (!started) { const z = sackZ(m); p.userData.mass = z > 0.1 ? 4 * MDOSE : Math.abs(z) < 0.1 ? MDOSE : 0; } }
+    p.visible = true; p.position.set(SX, SB, sackZ(m));
+    const lev = Math.max(0.0005, p.userData.mass / (RHO * (SW - 0.012) * (SD - 0.012)));
+    p.userData.fill.scale.y = lev; p.userData.fill.position.y = lev / 2 + 0.01; p.userData.fill.visible = p.userData.mass > 0.05;
+  }
+}
+updateSacks(); started = true;
+
+// ---------- flujo de alimento ----------
+const NPD = 520, RR = L.rng(91);
+const flow = new L.DoserFlow(scene, D, O, {
+  h: 0.097, lip: LIP, grainMap: GRAIN, nd: NPD / K.S, curtain: 900, seed: 12,
+  particles: { max: 3500, size: 0.024, shape: 'pellet', colors: [0x8a6a3a, 0x7a5c30, 0x9b7a48, 0x6e5228] },
+  spout: { x: SX, z: SZ, yTop: FTOP - 0.03, yExit: FEX, pull: 7, jit: 0.07 },
+  onSub: (t, th) => { curConv = convPos(th); },
+  landing: (p) => { const m = Math.round(-curConv / PITCH); const sk = sacks.get(m); if (!sk) return null;
+    const lev = sk.userData.mass / (RHO * (SW - 0.012) * (SD - 0.012));
+    return { y: SB + 0.01 + lev, attach: (q) => { q.sk = sk; q.ox = (RR() - 0.5) * (SW - 0.06); q.oz = (RR() - 0.5) * (SD - 0.05); q.oy = q.y - SB; sk.userData.mass += MDOSE / NPD; } }; },
+  rest: (p) => { p.x = p.sk.position.x + p.ox; p.z = p.sk.position.z + p.oz; p.y = p.sk.position.y + p.oy; p.wr = 0; if (p.age > 0.9) flow.P.kill(p); },
+});
+
+// ---------- HUD ----------
+const title = L.el(`<div class="k">Uso 2 · Planta de alimento balanceado</div><div class="t">Ensacado de alimento: 4 vueltas = 1 saco de 40 kg</div><div class="s">Versión industrial del mismo mecanismo a escala ×4, instalada sobre una plataforma dentro del levantamiento 3D de la nave.</div>`, 'title');
+L.el(`<div class="panel"><h4>Ensacadora · 30 rpm</h4>
+  <div class="row"><span class="lab">θ₂ manivela</span><span class="val" id="vth">0°</span></div>
+  <div class="row"><span class="lab">V<sub>B</sub> pistón</span><span class="val" id="vv">0</span></div>
+  <div class="row"><span class="lab">Fase</span><span class="phase" id="vph">—</span></div>
+  <div class="row"><span class="lab">Saco actual</span><span class="val" id="vs">0 / 40 kg</span></div>
+  <div class="row"><span class="lab">Sacos llenos</span><span class="val" id="vn">0</span></div>
+  <div class="row"><span class="lab">Producción</span><span class="val">300 kg/min ≈ 18 t/h</span></div></div>
+  <div class="panel" style="margin-top:10px;font-size:13px;line-height:1.45"><h4>Escala ×4</h4>
+  a = 140 mm · b = 528 mm · c = −80 mm<br>Carrera S = 283.5 mm · h = 97 mm<br>Dosis = 0.2835 × 0.56 × 0.097 m³<br>= 15.4 L ≈ <b>10 kg</b> por vuelta<br><span style="color:#9fb0c4">Q, μ y los ángulos no cambian con la escala</span></div>`, 'data');
+const cap = L.el('', 'cap', 'hud panel');
+L.el('Simulación cinemática (Norton) del mecanismo del proyecto escalado ×4 · flujo de material simplificado · cifras de producción estimadas', 'foot');
+const caps = [
+  [0.3, 3.6, 'Uso 2: alimentador de pistón bajo un silo, el principio de los alimentadores reciprocantes de las plantas de alimento balanceado.'],
+  [3.8, 9.0, 'Es el mismo mecanismo ×4: las posiciones y velocidades se multiplican por 4, pero los ángulos, Q = 1.057 y μ mín = 65.4° no cambian.'],
+  [9.3, 14.3, 'Vista en corte: el pistón empuja la capa de alimento bajo la compuerta (h = 97 mm); cada vuelta descarga 10 kg en la tolva de ensacado.'],
+  [14.6, 19.8, 'Cuatro vueltas llenan un saco de 40 kg; la banda de rodillos avanza un saco cada cuatro vueltas, durante el retorno.'],
+  [20.0, 23.9, 'A 30 rpm: 30 dosis/min = 300 kg/min ≈ 18 t/h. La producción se ajusta con la velocidad del motor (variador de frecuencia).'],
+];
+const CT = [0.0, 2.2, 0];
+const cam = L.cameraTrack([
+  { t: 0, pos: [7.5, 5.2, 9.0], look: [0, 1.8, 0], fov: 42 },
+  { t: 3.6, pos: L.orbit(CT, 5.0, 1.6, 0.85), look: CT, fov: 40 },
+  { t: 9.0, fn: (u) => ({ pos: L.orbit(CT, 5.0, 1.6, L.lerp(0.85, 0.25, u)), look: CT, fov: 40 }) },
+  { t: 10.3, pos: [-0.25, 2.45, 2.55], look: [-0.25, 2.25, 0], fov: 38 },
+  { t: 14.3, pos: [-0.15, 2.45, 2.45], look: [-0.15, 2.22, 0], fov: 38 },
+  { t: 15.6, pos: [2.25, 1.62, 1.45], look: [0.74, 1.22, 0.0], fov: 38 },
+  { t: 19.8, pos: [2.4, 1.66, 1.85], look: [0.74, 1.18, 0.25], fov: 38 },
+  { t: 23.9, pos: [6.0, 3.6, 6.5], look: [0.3, 1.4, 0.8], fov: 42 },
+]);
+let lastT = 0;
+window.sequential = true;
+window.frame = (i) => {
+  const t = i / L.FPS, th = thAt(t);
+  if (i > 0) flow.step(lastT, t, thAt, OMEGA); else flow.step(0, 0.0001, thAt, OMEGA, 1);
+  lastT = t;
+  curConv = convPos(th); updateSacks(); rc.setPos(curConv);
+  D.update(th); flow.sync();
+  L.setCamera(camera, cam(t));
+  const vB = K.vel(th, OMEGA), adv = K.isAdvance(th);
+  document.getElementById('vth').textContent = L.deg(L.wrap(th)).toFixed(1) + '°';
+  document.getElementById('vv').textContent = vB.toFixed(3) + ' m/s';
+  const ph = document.getElementById('vph'); ph.textContent = adv ? 'AVANCE (descarga)' : 'RETORNO (carga)'; ph.style.background = adv ? '#1f8f4a' : '#b8621b';
+  const m = Math.round(-curConv / PITCH), sk = sacks.get(m);
+  document.getElementById('vs').textContent = (sk ? Math.min(40, sk.userData.mass) : 0).toFixed(1) + ' / 40 kg';
+  document.getElementById('vn').textContent = Math.max(0, Math.floor((cyc(th) + 1) / 4));
+  L.fadeIn(title, t, -1, 0, 7.0, 8.0);
+  document.getElementById('data').style.opacity = L.clamp((t - 2.6) / 0.6, 0, 1);
+  const c = caps.find(c => t >= c[0] && t <= c[1]); cap.innerHTML = c ? c[2] : ''; cap.style.opacity = c ? L.clamp(Math.min(t - c[0], c[1] - t) / 0.3, 0, 1) : 0;
+  if (!window.skipRender) renderer.render(scene, camera);
+  return true;
+};
+window.DUR = DUR; window.ready = true;
+</script></body></html>

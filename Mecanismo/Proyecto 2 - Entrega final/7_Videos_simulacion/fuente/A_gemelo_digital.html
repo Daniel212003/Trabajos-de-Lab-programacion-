@@ -1,0 +1,126 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Gemelo digital</title>
+<style>html,body{margin:0;background:#000;overflow:hidden;width:1280px;height:720px}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body><div id="stage"></div>
+<script type="module">
+import * as THREE from 'three';
+import * as L from './lib.js';
+L.hudCSS();
+const DUR = 26, OMEGA = Math.PI, TH0 = 0.6;            // 30 rpm de diseno
+const { renderer, scene, camera } = L.setup({ bg: 0x15181e, exposure: 1.05 });
+L.lights(scene, { sun: [1.5, 3.2, 2.2], target: [0, 0.8, 0], size: 1.2, intensity: 2.4 });
+
+// ---------- laboratorio escaneado (nube de puntos) ----------
+L.pointCloud(scene, {
+  seed: 21, x: [-4, 4], z: [-3, 2.6], h: 3.1, y0: 0, size: 0.016, walls: ['back', 'left', 'right'], scanner: [0.5, 0.8], reach: 9,
+  nFloor: 380000, nWall: 52000, holes: 14,
+  yellow: [{ axis: 'x', at: 1.25, w: 0.1, from: -4, to: 4 }, { axis: 'z', at: -2.2, w: 0.1, from: -3, to: 1.25 }],
+  clearFloor: (x, z) => Math.abs(x) < 0.75 && Math.abs(z) < 0.5,
+  shelves: [{ c: [-1.8, -2.65], L: 2.4, D: 0.55, levels: 4, H: 2.0 }, { c: [1.6, -2.65], L: 2.0, D: 0.55, levels: 3, H: 1.6 }],
+  boxes: [{ c: [3.3, 0.45, -1.2], s: [0.9, 0.9, 1.4], col: [0.35, 0.38, 0.42] }, { c: [-3.4, 0.5, 0.6], s: [0.8, 1.0, 1.6], col: [0.55, 0.5, 0.42] },
+          { c: [-2.6, 0.4, -0.6], s: [1.2, 0.8, 0.7], col: [0.18, 0.4, 0.75] }, { c: [2.4, 0.45, 1.6], s: [1.6, 0.9, 0.7], col: [0.6, 0.6, 0.62] }],
+});
+// mesa de trabajo (CAD)
+const table = new THREE.Group(); scene.add(table);
+{
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.04, 0.8), L.mat(0xc9a36b, { r: 0.7 })); top.position.y = 0.73; table.add(top);
+  for (const [x, z] of [[-0.6, -0.35], [0.6, -0.35], [-0.6, 0.35], [0.6, 0.35]]) { const lg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.71, 0.05), L.MAT.alu()); lg.position.set(x, 0.355, z); table.add(lg); }
+  L.shadowAll(table);
+}
+// ---------- dosificador 1:1 (planos) ----------
+const D = L.buildDoser(1, { style: 'inventor', coverOpacity: 0.33, hopperOpacity: 0.3 });
+D.group.position.set(-0.17, 0.75 + 0.075, 0); scene.add(D.group);
+const mot = L.smallMotor(1); mot.position.copy(D.group.position); scene.add(mot);
+const K = D.K, O = D.group.position.clone();
+const W = (x, y, z = 0.002) => new THREE.Vector3(O.x + x, O.y + y, O.z + z);
+
+// ---------- trazas: pasador A, punto medio de la biela, pasador B ----------
+const NTR = 240, tr = { A: [], M: [], B: [] };
+for (let i = 0; i <= NTR; i++) { const th = i / NTR * 2 * Math.PI; const { d } = K.pos(th); const ax = K.a * Math.cos(th), ay = K.a * Math.sin(th);
+  tr.A.push(W(ax, ay, 0.004)); tr.M.push(W((ax + d) / 2, (ay + K.c) / 2, 0.004)); tr.B.push(W(d, K.c, 0.02)); }
+const lA = L.fatLine(scene, tr.A, 0xffe066, 3.5), lM = L.fatLine(scene, tr.M, 0x4fd6ff, 3.5), lB = L.fatLine(scene, tr.B, 0x7cff8a, 4);
+// lineas de eje (O2 y corredera) y cota de c
+function dashed(p, q, color) { return L.fatLine(scene, [p, q], color, 2, { dashed: true, dash: 0.008, gap: 0.006, order: 9 }); }
+const axO = dashed(W(-0.07, 0, 0.03), W(0.40, 0, 0.03), 0xffffff), axB = dashed(W(-0.07, K.c, 0.03), W(0.40, K.c, 0.03), 0x7cff8a);
+const cArrow = new THREE.Group(); scene.add(cArrow);
+for (const [y0, y1] of [[0, K.c], [K.c, 0]]) { const ah = new THREE.ArrowHelper(new THREE.Vector3(0, Math.sign(y1 - y0), 0), W(-0.055, y0, 0.03), Math.abs(K.c), 0xffffff, 0.008, 0.006); ah.line.material.depthTest = false; ah.cone.material.depthTest = false; ah.renderOrder = 11; cArrow.add(ah); }
+// flecha de velocidad del bloque
+const vArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), W(0, 0.04, 0.08), 0.05, 0x7cff8a, 0.014, 0.01);
+vArrow.line.material.depthTest = false; vArrow.cone.material.depthTest = false; vArrow.renderOrder = 12; vArrow.line.material.linewidth = 2; scene.add(vArrow);
+
+// ---------- HUD ----------
+const title = L.el(`<div class="k">Gemelo digital · Proyecto 2 de Mecanismos</div><div class="t">Dosificador de tolva con manivela-corredera descentrada</div><div class="s">Modelo 1:1 con las dimensiones de los planos, colocado en el levantamiento 3D (nube de puntos) del laboratorio.</div>`, 'title');
+const data = L.el(`<div class="panel"><h4>Cinemática en vivo · 30 rpm</h4>
+  <div class="row"><span class="lab">θ₂ manivela</span><span class="val" id="vth">0°</span></div>
+  <div class="row"><span class="lab">θ₃ biela</span><span class="val" id="vth3">0°</span></div>
+  <div class="row"><span class="lab">d (posición de B)</span><span class="val" id="vd">0 mm</span></div>
+  <div class="row"><span class="lab">V<sub>B</sub> bloque</span><span class="val" id="vv">0 mm/s</span></div>
+  <div class="row"><span class="lab">Fase</span><span class="phase" id="vph">—</span></div></div>
+  <div class="panel" style="margin-top:10px" id="plotbox"></div>`, 'data');
+const plot = L.miniPlot(document.getElementById('plotbox'), K, { what: 'v', omega: OMEGA, label: 'V<sub>B</sub> (mm/s) contra θ₂' });
+const cap = L.el('', 'cap', 'hud panel');
+L.el('Simulación cinemática con las ecuaciones de Norton (rama abierta) · a = 35 mm, b = 132 mm, c = −20 mm · validada con MATLAB, Inventor y video', 'foot');
+const lab = {}; for (const k of ['a', 'b', 'c', 'dm']) { lab[k] = document.createElement('div'); lab[k].className = 'lbl'; document.body.appendChild(lab[k]); }
+lab.a.innerHTML = 'a = 35 mm'; lab.a.style.color = '#ffb347'; lab.b.innerHTML = 'b = 132 mm'; lab.b.style.color = '#f08ad6'; lab.c.innerHTML = 'c = −20 mm';
+const caps = [
+  [0.3, 3.6, 'Levantamiento 3D del laboratorio (nube de puntos) + modelo CAD del mecanismo: así se valida dónde y cómo se instala un equipo antes de construirlo.'],
+  [3.9, 9.0, 'Manivela (naranja) · biela (magenta) · bloque (azul) · caja-guía y tolva: las piezas de los planos, a escala 1:1.'],
+  [9.3, 15.8, 'Cada punto de la biela dibuja una curva distinta (curva de acoplador); el pasador A, un círculo; el bloque solo se traslada.'],
+  [16.1, 21.8, 'Avance (verde) 185° y retorno (naranja) 175°: el descentrado hace que el bloque empuje más despacio de lo que regresa (Q = 1.057).'],
+  [22.1, 25.9, 'El mismo gemelo digital sirve para probar velocidades, dosis y ubicación del equipo en la planta sin detener la producción.'],
+];
+
+// ---------- camara ----------
+const C0 = [0.0, 0.83, 0];
+const cam = L.cameraTrack([
+  { t: 0, pos: [2.9, 2.0, 3.6], look: [0, 0.9, 0], fov: 45 },
+  { t: 3.6, pos: [0.62, 1.08, 0.80], look: C0, fov: 38 },
+  { t: 9.0, fn: (u) => ({ pos: L.orbit(C0, 1.0, 0.25, L.lerp(0.66, -0.55, L.smooth(u))), look: C0, fov: 38 }) },
+  { t: 10.4, pos: [0.02, 0.87, 0.62], look: [0.02, 0.83, 0], fov: 40 },
+  { t: 15.8, pos: [0.02, 0.87, 0.60], look: [0.02, 0.83, 0], fov: 40 },
+  { t: 17.0, pos: [-0.02, 0.88, 0.40], look: [-0.06, 0.815, 0], fov: 38 },
+  { t: 21.8, pos: [-0.05, 0.89, 0.42], look: [-0.07, 0.815, 0], fov: 38 },
+  { t: 25.9, pos: [0.95, 1.30, 1.15], look: [0, 0.82, 0], fov: 40 },
+]);
+const v3 = new THREE.Vector3();
+window.frame = (i) => {
+  const t = i / L.FPS, th = TH0 + OMEGA * t;
+  const s = D.update(th);
+  const vB = K.vel(th, OMEGA), th3 = K.pos(th).th3;
+  const k = cam(t); L.setCamera(camera, k);
+  // trazas: aparecen entre 9.3 y 15.8 s
+  const show = L.clamp((t - 9.3) / 0.6, 0, 1) * (t < 22.3 ? 1 : L.clamp(1 - (t - 22.3) / 0.8, 0, 1));
+  const frac = L.clamp((t - 9.3) / 2.2, 0, 1);
+  for (const l of [lA, lM, lB]) { l.material.opacity = show; l.visible = show > 0.01; l.reveal(frac); }
+  const showAx = L.clamp((t - 9.3) / 0.6, 0, 1) * L.clamp((15.9 - t) / 0.5, 0, 1);
+  for (const l of [axO, axB]) { l.material.opacity = showAx * 0.8; l.visible = showAx > 0.01; }
+  cArrow.visible = showAx > 0.01;
+  // flecha de velocidad (escala 0.3 s)
+  const len = Math.abs(vB) * 0.35; vArrow.position.copy(W(s.d + 0.085 - Math.sign(vB) * len / 2, -0.052, 0.095)); vArrow.setDirection(v3.set(Math.sign(vB) || 1, 0, 0)); vArrow.setLength(Math.max(len, 0.002), 0.014, 0.01);
+  const adv = K.isAdvance(th); vArrow.setColor(adv ? 0x7cff8a : 0xffa04a); vArrow.visible = t > 3.6;
+  // HUD
+  document.getElementById('vth').textContent = L.deg(L.wrap(th)).toFixed(1) + '°';
+  document.getElementById('vth3').textContent = L.deg(th3).toFixed(1) + '°';
+  document.getElementById('vd').textContent = (s.d * 1000).toFixed(1) + ' mm';
+  document.getElementById('vv').textContent = (vB * 1000).toFixed(1) + ' mm/s';
+  const ph = document.getElementById('vph'); ph.textContent = adv ? 'AVANCE (empuja)' : 'RETORNO (carga)'; ph.style.background = adv ? '#1f8f4a' : '#b8621b';
+  plot(th);
+  L.fadeIn(title, t, -1, 0, 7.5, 8.5);
+  document.getElementById('data').style.opacity = L.clamp((t - 3.4) / 0.6, 0, 1);
+  const c = caps.find(c => t >= c[0] && t <= c[1]); cap.innerHTML = c ? c[2] : ''; cap.style.opacity = c ? L.clamp(Math.min(t - c[0], c[1] - t) / 0.3, 0, 1) : 0;
+  // etiquetas 3D
+  const pa = L.project(W(K.a * Math.cos(th) / 2, K.a * Math.sin(th) / 2 + 0.012, 0.01), camera);
+  const pb = L.project(W((K.a * Math.cos(th) + s.d) / 2, (K.a * Math.sin(th) + K.c) / 2 + 0.022, 0.01), camera);
+  const pc = L.project(W(-0.055, K.c / 2, 0.03), camera);
+  const labOn = L.clamp((t - 9.6) / 0.5, 0, 1) * L.clamp((15.9 - t) / 0.4, 0, 1);
+  for (const [e, p, dx] of [[lab.a, pa, 0], [lab.b, pb, 0], [lab.c, pc, -62]]) { e.style.left = (p[0] + dx) + 'px'; e.style.top = p[1] + 'px'; e.style.opacity = labOn; }
+  // punto muerto interior
+  const dmIn = Math.abs(((th - K.thInt + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI) < 0.75 && t > 16.2 && t < 21.8;
+  const pd = L.project(W(s.d, K.c - 0.035, 0.09), camera);
+  lab.dm.innerHTML = 'Punto muerto interior · d<sub>mín</sub> = 94.9 mm'; lab.dm.style.left = pd[0] + 'px'; lab.dm.style.top = pd[1] + 'px';
+  lab.dm.style.opacity = dmIn ? 1 : 0; lab.dm.style.color = '#ffd36e';
+  if (!window.skipRender) renderer.render(scene, camera);
+  return true;
+};
+window.DUR = DUR; window.ready = true;
+</script></body></html>

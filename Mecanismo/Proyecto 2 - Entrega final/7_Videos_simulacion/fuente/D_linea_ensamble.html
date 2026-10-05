@@ -1,0 +1,158 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Linea de ensamble</title>
+<style>html,body{margin:0;background:#000;overflow:hidden;width:1280px;height:720px}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body><div id="stage"></div>
+<script type="module">
+import * as THREE from 'three';
+import * as L from './lib.js';
+L.hudCSS();
+const DUR = 22, OMEGA = Math.PI, KS = 3;               // 30 rpm, escala x3
+const { renderer, scene, camera } = L.setup({ bg: 0x13161c, exposure: 1.05 });
+L.lights(scene, { sun: [3, 8, 5], target: [0.5, 0.7, 1.0], size: 3.5, intensity: 2.5 });
+
+// ---------- planta de ensamble escaneada ----------
+L.pointCloud(scene, {
+  seed: 55, x: [-6, 8], z: [-5, 7], h: 4.5, size: 0.026, walls: ['back', 'left'], scanner: [1, 1.5], reach: 14, nFloor: 450000, nWall: 60000, holes: 16,
+  yellow: [{ axis: 'z', at: -0.9, w: 0.1, from: -5, to: 7 }, { axis: 'z', at: 2.6, w: 0.1, from: -5, to: 7 }],
+  clearFloor: (x, z) => x > -1.2 && x < 2.4 && z > -3.4 && z < 5.4,
+  shelves: [{ c: [-3.5, -4.5], L: 4, D: 0.7, levels: 4, H: 2.4 }, { c: [4.5, -4.5], L: 4, D: 0.7, levels: 4, H: 2.4 }],
+  boxes: [{ c: [-4.6, 0.6, 1.5], s: [1.4, 1.2, 2.4], col: [0.3, 0.42, 0.6] }, { c: [6.5, 0.5, 2.0], s: [1.6, 1.0, 1.6], col: [0.55, 0.56, 0.6] },
+          { c: [5.2, 0.9, 5.6], s: [2.4, 1.8, 0.8], col: [0.2, 0.4, 0.75] }],
+});
+
+// ---------- empujador: mismo mecanismo x3 ----------
+const O = new THREE.Vector3(-0.55, 0.96, 0);
+const D = L.buildDoser(KS, { style: 'industrial', blockColor: 0x2f6fd0, blockL: 0.050, blockH: 0.037, blockW: 0.080, cover: false, hopper: null, baseEnd: 0.155 });
+D.group.position.copy(O); scene.add(D.group);
+const mot = L.industrialMotor(KS); mot.position.copy(O); scene.add(mot);
+const K = D.K;
+const YT = O.y + D.yBase;                                 // nivel de los rodillos = cara de la placa base (0.75 m)
+// estructura bajo la placa base
+{ const xs0 = O.x - 0.15, xs1 = O.x + 0.44, z0 = -0.24, z1 = 0.24, fr = [];
+  for (const x of [xs0, xs1]) for (const z of [z0, z1]) fr.push([x - 0.02, 0, z - 0.02, x + 0.02, YT - 0.015, z + 0.02]);
+  for (const z of [z0, z1]) fr.push([xs0, 0.30, z - 0.02, xs1, 0.34, z + 0.02]);
+  scene.add(L.aluFrame(fr)); }
+// carriles de rodillos (a lo largo de z): carril 1 de acumulacion, carril 2 de la linea
+const FMIN = O.x + D.faceMin, FMAX = O.x + D.faceMax;
+const BX = 0.16, BZ = 0.30, BY = 0.12;                   // caja: largo en x (direccion de empuje), ancho en z, alto
+const L1X = FMIN + 0.02 + BX / 2, L2X = FMAX + BX / 2;   // centros de los carriles
+const lane1 = L.rollerConveyor({ len: 3.4, width: 0.18, height: YT - 0.024, pitch: 0.075 });
+lane1.group.rotation.y = -Math.PI / 2; lane1.group.position.set(L1X, 0, -1.55); scene.add(lane1.group);
+const lane2 = L.rollerConveyor({ len: 5.6, width: 0.18, height: YT - 0.024, pitch: 0.075 });
+lane2.group.rotation.y = -Math.PI / 2; lane2.group.position.set(L2X, 0, 2.55); scene.add(lane2.group);
+// tope del carril 1 y guias
+const stop = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.10, 0.02), L.MAT.yellow()); stop.position.set(L1X, YT + 0.05, BZ / 2 + 0.012); stop.castShadow = true; scene.add(stop);
+// racks de estaciones de trabajo (CAD) junto al carril 2
+const rack = (x, z, flip) => { const g = new THREE.Group(), fr = [], H = 1.9, Wr = 1.2, Dp = 0.6;
+  for (const xx of [0, Dp]) for (const zz of [0, Wr]) fr.push([xx - 0.02, 0, zz - 0.02, xx + 0.02, H, zz + 0.02]);
+  for (const y of [0.55, 0.95, 1.35, 1.75]) { fr.push([0, y - 0.015, -0.02, Dp, y + 0.015, 0.02]); fr.push([0, y - 0.015, Wr - 0.02, Dp, y + 0.015, Wr + 0.02]); fr.push([-0.02, y - 0.015, 0, 0.02, y + 0.015, Wr]); fr.push([Dp - 0.02, y - 0.015, 0, Dp + 0.02, y + 0.015, Wr]); }
+  g.add(L.aluFrame(fr));
+  const blue = L.MAT.blue(), yl = L.MAT.yellow();
+  for (const y of [0.55, 0.95, 1.35]) for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.14, 0.34), blue); b.position.set(Dp / 2, y + 0.085, 0.2 + i * 0.4); b.rotation.z = 0.12; g.add(b);
+    const pz = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.03, 0.24), yl); pz.position.set(Dp / 2, y + 0.16, 0.2 + i * 0.4); pz.rotation.z = 0.12; g.add(pz); }
+  const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.35, 12), L.mat(0xdddddd, { r: 0.3, m: 0.6 })); lamp.position.set(Dp / 2, H + 0.17, Wr / 2); g.add(lamp);
+  g.position.set(x, 0, z); if (flip) g.rotation.y = Math.PI; L.shadowAll(g); scene.add(g); };
+for (const z of [2.2, 3.5]) rack(L2X + 0.35, z, false);
+rack(L2X - 0.35, 4.7, true);
+// mesa de trabajo
+{ const t = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.04, 1.4), L.mat(0xb9c2cb, { r: 0.5, m: 0.4 })); t.position.set(L2X + 1.4, 0.9, 3.0); scene.add(t);
+  for (const [dx, dz] of [[-0.35, -0.65], [0.35, -0.65], [-0.35, 0.65], [0.35, 0.65]]) { const lg = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.88, 0.04), L.MAT.alu()); lg.position.set(L2X + 1.4 + dx, 0.44, 3.0 + dz); scene.add(lg); } }
+
+// ---------- cajas ----------
+const BLUE = L.MAT.blue(), PART = L.MAT.yellow();
+function makeBin() {
+  const g = new THREE.Group(), t = 0.008;
+  const add = (w, h, d, x, y, z, m) => { const ms = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); ms.position.set(x, y, z); ms.castShadow = true; ms.receiveShadow = true; g.add(ms); };
+  add(BX, t, BZ, 0, t / 2, 0, BLUE); add(t, BY, BZ, -BX / 2 + t / 2, BY / 2, 0, BLUE); add(t, BY, BZ, BX / 2 - t / 2, BY / 2, 0, BLUE);
+  add(BX, BY, t, 0, BY / 2, -BZ / 2 + t / 2, BLUE); add(BX, BY, t, 0, BY / 2, BZ / 2 - t / 2, BLUE);
+  for (let i = 0; i < 3; i++) add(0.12, 0.035, 0.06, 0, 0.03 + i * 0.002, -0.08 + i * 0.08, PART);
+  scene.add(g); return g;
+}
+const bins = [];
+const TH_INT = K.thInt, TH0 = TH_INT + 0.05;               // empieza en el punto muerto interior: caja lista frente al piston
+const thAt = (t) => TH0 + OMEGA * t;
+const VQ = 1.0, VQE = 1.6, VL = 0.45, GAP = 0.31;
+function newBin(state, x, z) { const b = { g: makeBin(), state, x, z }; bins.push(b); return b; }
+// condicion inicial: cola en el carril 1 y cajas ya transferidas en el carril 2
+for (let i = 0; i < 9; i++) newBin('queue', L1X, -i * GAP);
+for (let i = 1; i <= 6; i++) newBin('line', L2X, i * VL * 2);
+let moved = 0;
+function stepBins(dt, face) {
+  const clear = face <= FMIN + 0.02;                     // el empujador ya dejo libre el carril 1
+  const busy = bins.some(b => b.state === 'front');
+  const q = bins.filter(b => b.state === 'queue').sort((a, b) => b.z - a.z);
+  q.forEach((b, i) => {
+    if (i === 0) {
+      if (!busy && (clear || b.z > -GAP + 1e-6)) b.z = Math.min(0, b.z + VQE * dt); else b.z = Math.min(-GAP, b.z + VQ * dt);
+      if (b.z >= 0) b.state = 'front';
+    } else b.z = Math.min(q[i - 1].z - GAP, b.z + VQ * dt);
+  });
+  for (const b of bins) {
+    if (b.state === 'front') {
+      const back = b.x - BX / 2;
+      if (face > back) b.x = face + BX / 2;
+      if (b.x - BX / 2 >= FMAX - 0.003) { b.state = 'line'; b.x = L2X; moved++; }
+    } else if (b.state === 'line') b.z += VL * dt;
+  }
+  const last = q[q.length - 1];
+  if (!last || last.z > -2.9 + GAP) newBin('queue', L1X, (last ? last.z : 0) - GAP);
+  for (const b of bins) if (b.state === 'line' && b.z > 5.2) { scene.remove(b.g); b.dead = true; }
+  for (let i = bins.length - 1; i >= 0; i--) if (bins[i].dead) bins.splice(i, 1);
+}
+function syncBins() { for (const b of bins) b.g.position.set(b.x, YT, b.z); }
+let lanePos1 = 0, lanePos2 = 0;
+
+// ---------- HUD ----------
+const title = L.el(`<div class="k">Uso 3 · Línea de ensamble</div><div class="t">Transferidor de cajas entre dos bandas</div><div class="s">La corredera del mismo mecanismo (escala ×3) empuja una caja por vuelta desde el carril de acumulación hasta la línea que alimenta las estaciones de trabajo.</div>`, 'title');
+L.el(`<div class="panel"><h4>Transferidor · 30 rpm</h4>
+  <div class="row"><span class="lab">θ₂ manivela</span><span class="val" id="vth">0°</span></div>
+  <div class="row"><span class="lab">V<sub>B</sub> empujador</span><span class="val" id="vv">0</span></div>
+  <div class="row"><span class="lab">Fase</span><span class="phase" id="vph">—</span></div>
+  <div class="row"><span class="lab">Cajas transferidas</span><span class="val" id="vn">0</span></div>
+  <div class="row"><span class="lab">Ritmo</span><span class="val">30 cajas/min</span></div></div>
+  <div class="panel" style="margin-top:10px" id="plotbox"></div>`, 'data');
+const plot = L.miniPlot(document.getElementById('plotbox'), K, { what: 'd', omega: OMEGA, label: 'Posición del empujador d (mm)' });
+const cap = L.el('', 'cap', 'hud panel');
+L.el('Simulación cinemática (Norton) del mecanismo del proyecto escalado ×3 (carrera 212.6 mm) · ilustrativo', 'foot');
+const caps = [
+  [0.3, 3.6, 'Uso 3: la corredera no solo dosifica; también sirve como empujador de transferencia en una línea de ensamble.'],
+  [3.8, 8.8, 'Carrera ×3 = 212.6 mm: alcanza para pasar una caja de 160 mm de un carril al siguiente, con holgura para que entre la siguiente.'],
+  [9.1, 14.2, 'Avance (185°): empuja la caja a la línea. Retorno (175°): el empujador se retira y la siguiente caja llega al tope.'],
+  [14.5, 18.6, 'La línea lleva una caja cada 2 s a las estaciones de trabajo, sin sensores ni programación: el ritmo lo fija la manivela.'],
+  [18.9, 21.9, 'Con el levantamiento 3D de la planta se verifica el espacio, las alturas de los rodillos y el flujo antes de instalar el equipo.'],
+];
+const CT = [0.15, 0.85, 0.2];
+const cam = L.cameraTrack([
+  { t: 0, pos: [4.8, 3.4, 6.2], look: [0.4, 0.8, 1.0], fov: 42 },
+  { t: 3.6, pos: L.orbit(CT, 2.6, 0.9, 0.95), look: CT, fov: 40 },
+  { t: 8.8, fn: (u) => ({ pos: L.orbit(CT, 2.6, 0.9, L.lerp(0.95, 0.35, u)), look: CT, fov: 40 }) },
+  { t: 10.0, pos: [0.35, 2.0, 1.3], look: [-0.05, 0.76, 0.0], fov: 40 },
+  { t: 14.2, pos: [0.45, 1.95, 1.4], look: [0.0, 0.76, 0.1], fov: 40 },
+  { t: 15.6, pos: [2.2, 1.6, 0.4], look: [0.6, 0.85, 2.6], fov: 42 },
+  { t: 18.6, pos: [2.3, 1.7, 0.9], look: [0.5, 0.9, 3.2], fov: 42 },
+  { t: 21.9, pos: [4.6, 3.2, -1.6], look: [0.4, 0.8, 1.6], fov: 44 },
+]);
+let lastT = 0;
+window.sequential = true;
+window.frame = (i) => {
+  const t = i / L.FPS, th = thAt(t);
+  const n = i === 0 ? 1 : 8, t0 = i === 0 ? 0 : lastT, dt = (t - t0) / n;
+  for (let k = 1; k <= n; k++) { const tt = t0 + k * dt; stepBins(dt, O.x + K.pos(thAt(tt)).d + D.faceOff); }
+  lastT = t; syncBins();
+  lanePos2 = VL * t; lane2.setPos(lanePos2); lane1.setPos(VQ * 0.5 * t);
+  D.update(th);
+  L.setCamera(camera, cam(t));
+  const vB = K.vel(th, OMEGA), adv = K.isAdvance(th);
+  document.getElementById('vth').textContent = L.deg(L.wrap(th)).toFixed(1) + '°';
+  document.getElementById('vv').textContent = vB.toFixed(3) + ' m/s';
+  const ph = document.getElementById('vph'); ph.textContent = adv ? 'AVANCE (empuja)' : 'RETORNO (recoge)'; ph.style.background = adv ? '#1f8f4a' : '#b8621b';
+  document.getElementById('vn').textContent = moved;
+  plot(th);
+  L.fadeIn(title, t, -1, 0, 7.0, 8.0);
+  document.getElementById('data').style.opacity = L.clamp((t - 2.6) / 0.6, 0, 1);
+  const c = caps.find(c => t >= c[0] && t <= c[1]); cap.innerHTML = c ? c[2] : ''; cap.style.opacity = c ? L.clamp(Math.min(t - c[0], c[1] - t) / 0.3, 0, 1) : 0;
+  if (!window.skipRender) renderer.render(scene, camera);
+  return true;
+};
+window.DUR = DUR; window.ready = true;
+</script></body></html>
